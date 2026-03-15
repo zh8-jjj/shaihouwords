@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { db, auth } from '../firebase';
-import { collection, query, onSnapshot, deleteDoc, doc, orderBy, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { dataService } from '../services/data';
 import { Button } from './ui/button';
 import { ArrowLeft, Trash2, Check, X, Search, Filter, BookOpen, RefreshCw } from 'lucide-react';
 
@@ -17,21 +16,19 @@ export function WordList({ onBack }: { onBack: () => void }) {
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  useEffect(() => {
-    if (!auth.currentUser) return;
-
-    const q = query(
-      collection(db, `users/${auth.currentUser.uid}/words`),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const wordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const fetchWords = async () => {
+    try {
+      const wordsData = await dataService.getWords();
       setWords(wordsData);
       setLoading(false);
-    });
+    } catch (e) {
+      console.error("Error fetching words:", e);
+      setLoading(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchWords();
   }, []);
 
   const filteredWords = useMemo(() => {
@@ -44,46 +41,42 @@ export function WordList({ onBack }: { onBack: () => void }) {
   }, [words, searchQuery, activeTab]);
 
   const handleRestart = async (word: any) => {
-    if (!auth.currentUser) return;
     try {
-      await updateDoc(doc(db, `users/${auth.currentUser.uid}/words/${word.id}`), {
+      await dataService.updateWord(word.id, {
         status: 'learning',
         reviewCount: 0,
         failures: [],
-        nextReviewDate: serverTimestamp(), // Review immediately
+        nextReviewDate: new Date().toISOString(), // Review immediately
         lastReviewedAt: null
       });
+      fetchWords(); // Refresh list
     } catch (e) {
       console.error("Error restarting word:", e);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!auth.currentUser) return;
     try {
-      await deleteDoc(doc(db, `users/${auth.currentUser.uid}/words/${id}`));
+      await dataService.deleteWord(id);
       setDeletingId(null);
       setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+      fetchWords(); // Refresh list
     } catch (e) {
       console.error("Error deleting word:", e);
     }
   };
 
   const handleBulkDelete = async () => {
-    if (!auth.currentUser || selectedIds.length === 0) return;
+    if (selectedIds.length === 0) return;
     
     setIsBulkDeleting(true);
-    const batch = writeBatch(db);
-    
-    selectedIds.forEach(id => {
-      const wordRef = doc(db, `users/${auth.currentUser!.uid}/words/${id}`);
-      batch.delete(wordRef);
-    });
-
     try {
-      await batch.commit();
+      // Proxy doesn't support batch yet, so we do it sequentially for now
+      // In a real app, we'd add a bulk delete endpoint
+      await Promise.all(selectedIds.map(id => dataService.deleteWord(id)));
       setSelectedIds([]);
       setIsSelectionMode(false);
+      fetchWords(); // Refresh list
     } catch (e) {
       console.error("Error bulk deleting words:", e);
     } finally {
@@ -231,7 +224,7 @@ export function WordList({ onBack }: { onBack: () => void }) {
                     <td className="px-6 py-4">
                       <div className="font-serif text-lg text-stone-900 leading-none">{word.word}</div>
                       <div className="text-[10px] text-stone-400 mt-1 uppercase tracking-tighter">
-                        Added {new Date(word.createdAt?.toMillis()).toLocaleDateString()}
+                        Added {new Date(typeof word.createdAt === 'string' ? word.createdAt : (word.createdAt?.seconds * 1000 || Date.now())).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-stone-500 truncate max-w-[200px]" title={word.meaning}>{word.meaning}</td>

@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { db, auth } from '../firebase';
-import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { dataService } from '../services/data';
 import { getNextReviewDate } from '../lib/ebbinghaus';
 import { X, Check, RefreshCw, ChevronLeft, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateAIContent } from '../services/ai';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export function ReviewSession({ words, onComplete }: { words: any[], onComplete: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,13 +51,10 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
         const details = JSON.parse(response.text);
         setCurrentDetails(details);
         // Save to Firestore for future
-        if (auth.currentUser) {
-          const path = `users/${auth.currentUser.uid}/words/${currentWord.id}`;
-          await updateDoc(doc(db, path), {
-            example: details.example,
-            mnemonic: details.mnemonic
-          });
-        }
+        await dataService.updateWord(currentWord.id, {
+          example: details.example,
+          mnemonic: details.mnemonic
+        });
       }
     } catch (e) {
       console.error("Error fetching AI details:", e);
@@ -75,7 +70,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
   }, [showMeaning]);
 
   const handleReview = async (remembered: boolean) => {
-    if (!currentWord || !auth.currentUser) return;
+    if (!currentWord) return;
     
     setLoading(true);
     
@@ -85,8 +80,8 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     
     const updateData: any = {
       reviewCount: newReviewCount,
-      nextReviewDate: Timestamp.fromDate(nextDate),
-      lastReviewedAt: serverTimestamp(),
+      nextReviewDate: nextDate.toISOString(),
+      lastReviewedAt: "serverTimestamp",
       status: newReviewCount >= 6 ? 'graduated' : 'learning'
     };
 
@@ -98,8 +93,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     }
     
     try {
-      const path = `users/${auth.currentUser.uid}/words/${currentWord.id}`;
-      await updateDoc(doc(db, path), updateData);
+      await dataService.updateWord(currentWord.id, updateData);
       
       // Move to next word
       if (currentIndex + 1 < words.length) {
@@ -110,7 +104,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
         onComplete();
       }
     } catch (e) {
-      handleFirestoreError(e, OperationType.UPDATE, `users/${auth.currentUser.uid}/words/${currentWord.id}`);
+      console.error("Error updating word:", e);
     } finally {
       setLoading(false);
     }

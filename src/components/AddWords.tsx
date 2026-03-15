@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { db, auth } from '../firebase';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { dataService } from '../services/data';
 import { CheckCircle2, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { generateAIContent } from '../services/ai';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export function AddWords({ onBack }: { onBack: () => void }) {
   const [text, setText] = useState('');
@@ -14,7 +12,7 @@ export function AddWords({ onBack }: { onBack: () => void }) {
   const [aiCount, setAiCount] = useState<number>(0);
 
   const handleAdd = async () => {
-    if (!text.trim() || !auth.currentUser) return;
+    if (!text.trim()) return;
     
     setLoading(true);
     setAiCount(0);
@@ -90,21 +88,18 @@ export function AddWords({ onBack }: { onBack: () => void }) {
     // but for simplicity and safety with rules, we'll do individual adds.
     for (const item of wordsToAdd) {
       try {
-        const path = `users/${auth.currentUser.uid}/words`;
-        await addDoc(collection(db, path), {
-          userId: auth.currentUser.uid,
+        await dataService.addWord({
           word: item.word,
           meaning: item.meaning,
           example: item.example || '',
           mnemonic: item.mnemonic || '',
-          createdAt: serverTimestamp(),
-          nextReviewDate: Timestamp.fromDate(now), // Review immediately!
+          nextReviewDate: now.toISOString(), // Review immediately!
           reviewCount: 0,
           status: 'learning'
         });
         added++;
       } catch (e) {
-        handleFirestoreError(e, OperationType.CREATE, `users/${auth.currentUser.uid}/words`);
+        console.error("Error adding word:", e);
       }
     }
     

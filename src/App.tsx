@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, auth, googleProvider } from './firebase';
-import { signInWithPopup, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp, Timestamp, getDocFromServer } from 'firebase/firestore';
+import { dataService } from './services/data';
 import { Button } from './components/ui/button';
 import { AddWords } from './components/AddWords';
 import { ReviewSession } from './components/ReviewSession';
@@ -11,12 +9,13 @@ import { ActivityGraph } from './components/ActivityGraph';
 import { StandaloneJarScene } from './components/StandaloneJarScene';
 import { recordActivity } from './lib/activity';
 import { startOfDay } from 'date-fns';
-import { LogOut, Plus, Play, BookOpen, List, UserCircle2, Settings } from 'lucide-react';
-import { handleFirestoreError, OperationType } from './lib/firestore-errors';
+import { LogOut, Plus, Play, BookOpen, List, UserCircle2, Settings, Mail } from 'lucide-react';
+import { Input } from './components/ui/input';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
   const [view, setView] = useState<'dashboard' | 'add' | 'review' | 'list' | 'activity'>('dashboard');
   const [showJarSettings, setShowJarSettings] = useState(false);
   const [isReviewingMap, setIsReviewingMap] = useState(false);
@@ -28,71 +27,66 @@ export default function App() {
   const [totalWords, setTotalWords] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      setIsAuthReady(true);
-      
-      if (currentUser) {
-        // Test connection and ensure user document exists
-        try {
-          const path = `users/${currentUser.uid}`;
-          // Connection test as per guidelines
-          await getDocFromServer(doc(db, path));
-          
-          await setDoc(doc(db, path), {
-            email: currentUser.email || 'guest',
-            createdAt: serverTimestamp()
-          }, { merge: true });
-          
-          // Record activity for today
-          await recordActivity();
-        } catch (e) {
-          if (e instanceof Error && e.message.includes('the client is offline')) {
-            alert("检测到离线状态。请检查您的网络连接，以确保数据能够同步到云端。");
-          } else {
-            handleFirestoreError(e, OperationType.WRITE, `users/${currentUser.uid}`);
-          }
-        }
+    const checkAuth = async () => {
+      try {
+        const currentUser = await dataService.getCurrentUser();
+        setUser(currentUser);
+      } catch (e) {
+        console.error("Auth check failed", e);
+      } finally {
+        setIsAuthReady(true);
       }
-    });
-    return () => unsubscribe();
+    };
+    checkAuth();
   }, []);
+
+  const fetchWords = async () => {
+    if (!user) return;
+    try {
+      const words = await dataService.getWords();
+      const allLearningWords = words.filter((w: any) => w.status === 'learning');
+      
+      const now = Date.now();
+      const toReview = allLearningWords.filter((word: any) => {
+        if (!word.nextReviewDate) return false;
+        // Handle both Firestore Timestamp and ISO string from proxy
+        const millis = typeof word.nextReviewDate === 'string' 
+          ? new Date(word.nextReviewDate).getTime() 
+          : (word.nextReviewDate.seconds * 1000);
+        return millis <= now;
+      });
+      
+      setWordsToReview(toReview);
+      setAllWordsList(allLearningWords);
+      setTotalWords(allLearningWords.length);
+    } catch (e) {
+      console.error("Error fetching words:", e);
+    }
+  };
 
   useEffect(() => {
     if (!user || !isAuthReady) return;
-
-    const today = startOfDay(new Date());
-    const todayTimestamp = Timestamp.fromDate(today);
-
-    // Listen to all words for the user
-    const q = query(
-      collection(db, `users/${user.uid}/words`),
-      where('status', '==', 'learning')
-    );
-
-    const unsubscribeReview = onSnapshot(
-      q,
-      (snapshot) => {
-        const allLearningWords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        const now = Date.now();
-        // Client-side filter for strict timing: nextReviewDate <= now
-        const toReview = allLearningWords.filter((word: any) => {
-          if (!word.nextReviewDate) return false;
-          return word.nextReviewDate.toMillis() <= now;
-        });
-        
-        setWordsToReview(toReview);
-        setAllWordsList(allLearningWords);
-        setTotalWords(allLearningWords.length); // Update total learning words
-      },
-      (error) => console.error("Error fetching words:", error)
-    );
-
-    return () => {
-      unsubscribeReview();
-    };
+    fetchWords();
+    // Poll every 30 seconds for "real-time" feel without VPN
+    const interval = setInterval(fetchWords, 30000);
+    return () => clearInterval(interval);
   }, [user, isAuthReady]);
+
+  const handleLogin = async () => {
+    if (!emailInput.trim()) return;
+    try {
+      const loggedInUser = await dataService.login(emailInput);
+      setUser(loggedInUser);
+    } catch (error: any) {
+      console.error("Login failed", error);
+      alert(`登录失败: ${error.message}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    await dataService.logout();
+    setUser(null);
+  };
 
   const handleWordClick = (word: any) => {
     // Find the index of the clicked word in the current wordsToReview list
@@ -111,26 +105,7 @@ export default function App() {
   const handleReviewComplete = () => {
     setReviewSessionList([]);
     setSelectedWordIndex(null);
-  };
-
-  const handleLogin = async () => {
-    try {
-      console.log("Attempting Google login...");
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Login failed", error);
-      alert(`登录失败: ${error.message}\n请检查是否在 Firebase 控制台将您的域名添加到了“授权网域”中。`);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    try {
-      console.log("Attempting guest login...");
-      await signInAnonymously(auth);
-    } catch (error: any) {
-      console.error("Guest login failed", error);
-      alert(`游客登录失败: ${error.message}`);
-    }
+    fetchWords(); // Refresh after review
   };
 
   if (!isAuthReady) {
@@ -149,26 +124,25 @@ export default function App() {
             <p className="text-stone-500 text-sm tracking-widest uppercase">Master vocabulary with spaced repetition</p>
           </div>
           <div className="space-y-4 pt-4">
-            <Button size="lg" className="w-full h-12 text-sm font-medium rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors" onClick={handleLogin}>
-              Sign in with Google
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-stone-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                <span className="bg-white px-4 text-stone-400">Or</span>
+            <div className="space-y-2">
+              <label className="text-xs text-stone-400 uppercase tracking-widest text-left block">Enter Email to Start</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                <Input 
+                  type="email" 
+                  placeholder="your@email.com" 
+                  className="pl-10 h-12 rounded-xl border-stone-200 focus:ring-stone-400"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                />
               </div>
             </div>
-
-            <Button variant="outline" size="lg" className="w-full h-12 text-sm font-medium rounded-xl border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors" onClick={handleGuestLogin}>
-              <UserCircle2 className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Continue as Guest
+            <Button size="lg" className="w-full h-12 text-sm font-medium rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors" onClick={handleLogin}>
+              Enter
             </Button>
             
-            <p className="text-xs text-stone-400 mt-6 leading-relaxed">
-              Guest accounts are tied to this browser.<br/>Clear your cache and your data is gone.
+            <p className="text-xs text-stone-400 mt-6 leading-relaxed italic">
+              * 测试版：无需翻墙即可访问数据。
             </p>
           </div>
         </div>
@@ -228,7 +202,7 @@ export default function App() {
             <MiniActivityGraph onClick={() => setView('activity')} />
           </div>
           
-          <Button variant="ghost" size="icon" onClick={() => signOut(auth)} title="Sign out" className="text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full w-8 h-8 sm:w-9 sm:h-9">
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out" className="text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full w-8 h-8 sm:w-9 sm:h-9">
             <LogOut className="w-4 h-4" strokeWidth={1.5} />
           </Button>
         </div>
@@ -241,21 +215,35 @@ export default function App() {
             ref={jarRef}
             words={allWordsList.filter(w => {
               const now = Date.now();
-              const isDue = w.nextReviewDate && w.nextReviewDate.toMillis() <= now;
+              const millis = typeof w.nextReviewDate === 'string' 
+                ? new Date(w.nextReviewDate).getTime() 
+                : (w.nextReviewDate.seconds * 1000);
+              const isDue = millis <= now;
               const today = startOfDay(new Date()).getTime();
-              const isReviewedToday = w.lastReviewedAt && w.lastReviewedAt.toMillis() >= today;
+              const lastMillis = w.lastReviewedAt 
+                ? (typeof w.lastReviewedAt === 'string' ? new Date(w.lastReviewedAt).getTime() : w.lastReviewedAt.seconds * 1000)
+                : 0;
+              const isReviewedToday = lastMillis >= today;
               return isDue || isReviewedToday;
             }).map(w => w.word)}
             reviewWords={allWordsList.filter(w => {
-              // Show words that are due OR were reviewed today
               const now = Date.now();
-              const isDue = w.nextReviewDate && w.nextReviewDate.toMillis() <= now;
+              const millis = typeof w.nextReviewDate === 'string' 
+                ? new Date(w.nextReviewDate).getTime() 
+                : (w.nextReviewDate.seconds * 1000);
+              const isDue = millis <= now;
               const today = startOfDay(new Date()).getTime();
-              const isReviewedToday = w.lastReviewedAt && w.lastReviewedAt.toMillis() >= today;
+              const lastMillis = w.lastReviewedAt 
+                ? (typeof w.lastReviewedAt === 'string' ? new Date(w.lastReviewedAt).getTime() : w.lastReviewedAt.seconds * 1000)
+                : 0;
+              const isReviewedToday = lastMillis >= today;
               return isDue || isReviewedToday;
             }).map(w => {
               const today = startOfDay(new Date()).getTime();
-              const isReviewedToday = w.lastReviewedAt && w.lastReviewedAt.toMillis() >= today;
+              const lastMillis = w.lastReviewedAt 
+                ? (typeof w.lastReviewedAt === 'string' ? new Date(w.lastReviewedAt).getTime() : w.lastReviewedAt.seconds * 1000)
+                : 0;
+              const isReviewedToday = lastMillis >= today;
               return { ...w, isReviewed: isReviewedToday };
             })}
             showControls={showJarSettings}
