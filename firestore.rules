@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - email: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users/{userId}/words
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - word: string (required, max 200 chars)
+    //   - meaning: string (required, max 1000 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //   - nextReviewDate: timestamp (required)
+    //   - reviewCount: number (required, >= 0)
+    //   - status: string (required, 'learning' or 'graduated')
+    //   - lastReviewedAt: timestamp (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // Domain Validators
+    function isValidWord(data) {
+      return hasRequiredFields(['userId', 'word', 'meaning', 'createdAt', 'nextReviewDate', 'reviewCount', 'status']) &&
+             data.userId is string && data.userId.size() > 0 &&
+             data.word is string && data.word.size() > 0 && data.word.size() <= 200 &&
+             data.meaning is string && data.meaning.size() > 0 && data.meaning.size() <= 1000 &&
+             data.createdAt is timestamp &&
+             data.nextReviewDate is timestamp &&
+             data.reviewCount is number && data.reviewCount >= 0 &&
+             data.status in ['learning', 'graduated'] &&
+             (!('lastReviewedAt' in data) || data.lastReviewedAt is timestamp) &&
+             (!('failures' in data) || data.failures is list);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && hasRequiredFields(['email', 'createdAt']) && request.resource.data.email is string && request.resource.data.createdAt is timestamp;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      
+      match /words/{wordId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWord(request.resource.data) && uidUnchanged();
+        allow update: if isOwner(userId) && isValidWord(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      match /activity/{dateId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && 
+                     request.resource.data.count is number && 
+                     request.resource.data.lastActive is timestamp;
+      }
+    }
+  }
+}

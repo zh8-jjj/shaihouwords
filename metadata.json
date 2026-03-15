@@ -1,0 +1,5 @@
+{
+  "name": "晒后单词",
+  "description": "基于艾宾浩斯遗忘曲线的词汇学习应用，支持多端同步。名字灵感源自电影《Aftersun》。",
+  "requestFramePermissions": []
+}
