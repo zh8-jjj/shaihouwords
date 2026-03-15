@@ -4,7 +4,7 @@ import { Textarea } from './ui/textarea';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { CheckCircle2, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { generateAIContent } from '../services/ai';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export function AddWords({ onBack }: { onBack: () => void }) {
@@ -46,8 +46,7 @@ export function AddWords({ onBack }: { onBack: () => void }) {
 
     if (wordsToFetch.length > 0) {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
+        const response = await generateAIContent({
           model: "gemini-3.1-pro-preview",
           contents: `Provide the Chinese meaning, part of speech, a simple example sentence (with Chinese translation), and a brief root/affix analysis or mnemonic for the following English words. 
           Return a JSON array of objects with 'word', 'meaning', 'example', and 'mnemonic' properties. 
@@ -58,14 +57,14 @@ export function AddWords({ onBack }: { onBack: () => void }) {
           config: {
             responseMimeType: "application/json",
             responseSchema: {
-              type: Type.ARRAY,
+              type: "ARRAY",
               items: {
-                type: Type.OBJECT,
+                type: "OBJECT",
                 properties: {
-                  word: { type: Type.STRING },
-                  meaning: { type: Type.STRING },
-                  example: { type: Type.STRING },
-                  mnemonic: { type: Type.STRING }
+                  word: { type: "STRING" },
+                  meaning: { type: "STRING" },
+                  example: { type: "STRING" },
+                  mnemonic: { type: "STRING" }
                 },
                 required: ["word", "meaning", "example", "mnemonic"]
               }

@@ -5,7 +5,7 @@ import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getNextReviewDate } from '../lib/ebbinghaus';
 import { X, Check, RefreshCw, ChevronLeft, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { generateAIContent } from '../services/ai';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export function ReviewSession({ words, onComplete }: { words: any[], onComplete: () => void }) {
@@ -30,8 +30,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     if (!currentWord || aiLoading) return;
     setAiLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
+      const response = await generateAIContent({
         model: "gemini-3.1-pro-preview",
         contents: `Provide a simple example sentence (with Chinese translation) and a brief root/affix analysis or mnemonic for the English word: "${currentWord.word}". 
         Return a JSON object with 'example' and 'mnemonic' properties.
@@ -40,10 +39,10 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
         config: {
           responseMimeType: "application/json",
           responseSchema: {
-            type: Type.OBJECT,
+            type: "OBJECT",
             properties: {
-              example: { type: Type.STRING },
-              mnemonic: { type: Type.STRING }
+              example: { type: "STRING" },
+              mnemonic: { type: "STRING" }
             },
             required: ["example", "mnemonic"]
           }
