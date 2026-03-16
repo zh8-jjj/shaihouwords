@@ -148,7 +148,7 @@ async function startServer() {
 
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: model || "gemini-3.1-pro-preview",
+        model: model || "gemini-2.0-flash",
         contents,
         config,
       });
