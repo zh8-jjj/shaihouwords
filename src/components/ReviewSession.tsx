@@ -29,7 +29,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     setAiLoading(true);
     try {
       const response = await generateAIContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-2.0-flash",
         contents: `Provide a simple example sentence (with Chinese translation) and a brief root/affix analysis or mnemonic for the English word: "${currentWord.word}". 
         Return a JSON object with 'example' and 'mnemonic' properties.
         Example sentence format: 'The apple is red. (这个苹果是红色的。)'.

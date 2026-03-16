@@ -45,7 +45,7 @@ export function AddWords({ onBack }: { onBack: () => void }) {
     if (wordsToFetch.length > 0) {
       try {
         const response = await generateAIContent({
-          model: "gemini-3.1-pro-preview",
+          model: "gemini-2.0-flash",
           contents: `Provide the Chinese meaning, part of speech, a simple example sentence (with Chinese translation), and a brief root/affix analysis or mnemonic for the following English words. 
           Return a JSON array of objects with 'word', 'meaning', 'example', and 'mnemonic' properties. 
           Example meaning format: 'n. 苹果; v. 采摘'.
