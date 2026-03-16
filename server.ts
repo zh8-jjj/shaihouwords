@@ -46,8 +46,8 @@ async function startServer() {
       const uid = Buffer.from(email).toString("base64").replace(/=/g, "");
       
       // Set a simple session cookie
-      res.cookie("user_uid", uid, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
-      res.cookie("user_email", email, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+      res.cookie("user_uid", uid, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000, sameSite: 'none', secure: true });
+      res.cookie("user_email", email, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000, sameSite: 'none', secure: true });
       
       res.json({ uid, email });
     } catch (error: any) {
@@ -63,8 +63,8 @@ async function startServer() {
   });
 
   app.post("/api/proxy/logout", (req, res) => {
-    res.clearCookie("user_uid");
-    res.clearCookie("user_email");
+    res.clearCookie("user_uid", { sameSite: 'none', secure: true });
+    res.clearCookie("user_email", { sameSite: 'none', secure: true });
     res.json({ success: true });
   });
 

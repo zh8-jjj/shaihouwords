@@ -37,7 +37,14 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
       });
 
       if (response.text) {
-        const details = JSON.parse(response.text);
+        let jsonText = response.text;
+        if (jsonText.includes("```")) {
+          const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) {
+            jsonText = match[1];
+          }
+        }
+        const details = JSON.parse(jsonText);
         setCurrentDetails(details);
         // Save to Firestore for future
         await dataService.updateWord(currentWord.id, {

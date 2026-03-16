@@ -55,7 +55,14 @@ export function AddWords({ onBack }: { onBack: () => void }) {
         });
         
         if (response.text) {
-          const parsed = JSON.parse(response.text);
+          let jsonText = response.text;
+          if (jsonText.includes("```")) {
+            const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (match) {
+              jsonText = match[1];
+            }
+          }
+          const parsed = JSON.parse(jsonText);
           const fetchedWords = parsed.words || [];
           wordsToAdd.push(...fetchedWords);
           setAiCount(fetchedWords.length);
