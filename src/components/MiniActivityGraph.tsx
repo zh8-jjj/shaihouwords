@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db, auth } from '../firebase';
-import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
+import { dataService } from '../services/data';
 import { format, subDays } from 'date-fns';
 
 export function MiniActivityGraph({ onClick }: { onClick: () => void }) {
@@ -8,24 +7,11 @@ export function MiniActivityGraph({ onClick }: { onClick: () => void }) {
 
   useEffect(() => {
     async function fetchActivity() {
-      if (!auth.currentUser) return;
-      
-      const today = new Date();
-      const lastWeek = subDays(today, 6);
-      const startDateId = format(lastWeek, 'yyyy-MM-dd');
-      
       try {
-        const q = query(
-          collection(db, `users/${auth.currentUser.uid}/activity`),
-          where(documentId(), '>=', startDateId),
-          orderBy(documentId(), 'asc'),
-          limit(7)
-        );
-        
-        const snapshot = await getDocs(q);
+        const activityData = await dataService.getActivity();
         const active = new Map<string, number>();
-        snapshot.forEach(doc => {
-          active.set(doc.id, doc.data().count || 1);
+        activityData.forEach((data: any) => {
+          active.set(data.id, data.count || 1);
         });
         setActiveDays(active);
       } catch (error) {

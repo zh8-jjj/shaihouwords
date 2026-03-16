@@ -5,7 +5,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, orderBy, deleteDoc } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, orderBy, deleteDoc, setDoc, increment } from "firebase/firestore";
 import fs from "fs";
 
 dotenv.config();
@@ -129,6 +129,40 @@ async function startServer() {
 
     try {
       await deleteDoc(doc(db, `users/${uid}/words`, id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- ACTIVITY PROXY ---
+  app.get("/api/proxy/activity", async (req, res) => {
+    const uid = req.cookies.user_uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const q = query(collection(db, `users/${uid}/activity`), orderBy("__name__", "asc"));
+      const snapshot = await getDocs(q);
+      const activity = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(activity);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/proxy/activity", async (req, res) => {
+    const uid = req.cookies.user_uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const today = new Date();
+      // Format as yyyy-MM-dd
+      const dateId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const activityRef = doc(db, `users/${uid}/activity/${dateId}`);
+      await setDoc(activityRef, {
+        count: increment(1),
+        lastActive: serverTimestamp()
+      }, { merge: true });
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

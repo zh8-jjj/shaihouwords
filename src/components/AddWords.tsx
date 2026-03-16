@@ -95,6 +95,10 @@ export function AddWords({ onBack }: { onBack: () => void }) {
       }
     }
     
+    if (added > 0) {
+      await dataService.recordActivity();
+    }
+    
     setLoading(false);
     setSuccessCount(added);
     setText('');

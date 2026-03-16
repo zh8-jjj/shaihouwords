@@ -70,5 +70,20 @@ export const dataService = {
       credentials: 'include'
     });
     return await res.json();
+  },
+
+  // Activity
+  async getActivity() {
+    const res = await fetch('/api/proxy/activity', { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to fetch activity');
+    return await res.json();
+  },
+
+  async recordActivity() {
+    const res = await fetch('/api/proxy/activity', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    return await res.json();
   }
 };

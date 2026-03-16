@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db, auth } from '../firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { dataService } from '../services/data';
 import { format, subDays, startOfWeek, addDays, isAfter, isBefore, startOfDay, getYear, getMonth, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ArrowLeft, Flame, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
@@ -23,21 +22,13 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     async function fetchAllActivity() {
-      if (!auth.currentUser) return;
-      
       try {
-        const q = query(
-          collection(db, `users/${auth.currentUser.uid}/activity`),
-          orderBy('__name__', 'asc')
-        );
-        
-        const snapshot = await getDocs(q);
+        const activityData = await dataService.getActivity();
         const active = new Map<string, number>();
         let currentStreak = 0;
         
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          active.set(doc.id, data.count || 1);
+        activityData.forEach((data: any) => {
+          active.set(data.id, data.count || 1);
         });
         
         // Calculate current streak

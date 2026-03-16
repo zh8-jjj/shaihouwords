@@ -7,7 +7,6 @@ import { WordList } from './components/WordList';
 import { MiniActivityGraph } from './components/MiniActivityGraph';
 import { ActivityGraph } from './components/ActivityGraph';
 import { StandaloneJarScene } from './components/StandaloneJarScene';
-import { recordActivity } from './lib/activity';
 import { startOfDay } from 'date-fns';
 import { LogOut, Plus, Play, BookOpen, List, UserCircle2, Settings, Mail } from 'lucide-react';
 import { Input } from './components/ui/input';
@@ -77,6 +76,8 @@ export default function App() {
     try {
       const loggedInUser = await dataService.login(emailInput);
       setUser(loggedInUser);
+      // Record activity on login
+      await dataService.recordActivity();
     } catch (error: any) {
       console.error("Login failed", error);
       alert(`登录失败: ${error.message}`);

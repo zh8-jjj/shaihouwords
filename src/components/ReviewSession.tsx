@@ -90,6 +90,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     
     try {
       await dataService.updateWord(currentWord.id, updateData);
+      await dataService.recordActivity();
       
       // Move to next word
       if (currentIndex + 1 < words.length) {
