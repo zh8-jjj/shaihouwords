@@ -29,22 +29,11 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     setAiLoading(true);
     try {
       const response = await generateAIContent({
-        model: "gemini-2.0-flash",
-        contents: `Provide a simple example sentence (with Chinese translation) and a brief root/affix analysis or mnemonic for the English word: "${currentWord.word}". 
+        prompt: `Provide a simple example sentence (with Chinese translation) and a brief root/affix analysis or mnemonic for the English word: "${currentWord.word}". 
         Return a JSON object with 'example' and 'mnemonic' properties.
         Example sentence format: 'The apple is red. (这个苹果是红色的。)'.
         Mnemonic format: '词根: apple (苹果); 记忆: 想象一个红苹果'.`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              example: { type: "STRING" },
-              mnemonic: { type: "STRING" }
-            },
-            required: ["example", "mnemonic"]
-          }
-        }
+        jsonMode: true
       });
 
       if (response.text) {

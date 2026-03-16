@@ -4,9 +4,9 @@
  */
 
 export async function generateAIContent(params: {
-  model?: string;
-  contents: any;
-  config?: any;
+  prompt: string;
+  systemInstruction?: string;
+  jsonMode?: boolean;
 }) {
   const response = await fetch("/api/ai/generate", {
     method: "POST",

@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { initializeApp } from "firebase/app";
@@ -136,26 +135,46 @@ async function startServer() {
     }
   });
 
-  // --- GEMINI PROXY ---
+  // --- DEEPSEEK PROXY ---
   app.post("/api/ai/generate", async (req, res) => {
     try {
-      const { model, contents, config } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      const { prompt, systemInstruction, jsonMode } = req.body;
+      const apiKey = process.env.DEEPSEEK_API_KEY || "sk-75b79e9dbd98413a8401f63f79b7de00";
 
       if (!apiKey) {
-        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+        return res.status(500).json({ error: "DEEPSEEK_API_KEY is not configured on the server." });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: model || "gemini-2.0-flash",
-        contents,
-        config,
+      const messages = [];
+      if (systemInstruction) {
+        messages.push({ role: "system", content: systemInstruction });
+      }
+      messages.push({ role: "user", content: prompt });
+
+      const response = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages,
+          response_format: jsonMode ? { type: "json_object" } : { type: "text" }
+        })
       });
 
-      res.json({ text: response.text });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`DeepSeek API Error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      const text = data.choices[0].message.content;
+
+      res.json({ text });
     } catch (error: any) {
-      console.error("Gemini Proxy Error:", error);
+      console.error("DeepSeek Proxy Error:", error);
       res.status(500).json({ error: error.message || "Failed to generate content" });
     }
   });

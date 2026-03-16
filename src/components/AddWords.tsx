@@ -45,33 +45,18 @@ export function AddWords({ onBack }: { onBack: () => void }) {
     if (wordsToFetch.length > 0) {
       try {
         const response = await generateAIContent({
-          model: "gemini-2.0-flash",
-          contents: `Provide the Chinese meaning, part of speech, a simple example sentence (with Chinese translation), and a brief root/affix analysis or mnemonic for the following English words. 
-          Return a JSON array of objects with 'word', 'meaning', 'example', and 'mnemonic' properties. 
+          prompt: `Provide the Chinese meaning, part of speech, a simple example sentence (with Chinese translation), and a brief root/affix analysis or mnemonic for the following English words. 
+          Return a JSON object with a single property 'words' which is an array of objects with 'word', 'meaning', 'example', and 'mnemonic' properties. 
           Example meaning format: 'n. 苹果; v. 采摘'.
           Example sentence format: 'The apple is red. (这个苹果是红色的。)'.
           Mnemonic format: '词根: apple (苹果); 记忆: 想象一个红苹果'.
           Words: ${wordsToFetch.join(', ')}`,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  word: { type: "STRING" },
-                  meaning: { type: "STRING" },
-                  example: { type: "STRING" },
-                  mnemonic: { type: "STRING" }
-                },
-                required: ["word", "meaning", "example", "mnemonic"]
-              }
-            }
-          }
+          jsonMode: true
         });
         
         if (response.text) {
-          const fetchedWords = JSON.parse(response.text);
+          const parsed = JSON.parse(response.text);
+          const fetchedWords = parsed.words || [];
           wordsToAdd.push(...fetchedWords);
           setAiCount(fetchedWords.length);
         }
