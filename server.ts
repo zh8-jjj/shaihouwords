@@ -139,6 +139,7 @@ async function startServer() {
   app.post("/api/ai/generate", async (req, res) => {
     try {
       const { prompt, systemInstruction, jsonMode } = req.body;
+      // 这里的代码运行在服务器端，浏览器（前端）绝对看不到
       const apiKey = process.env.DEEPSEEK_API_KEY || "sk-75b79e9dbd98413a8401f63f79b7de00";
 
       if (!apiKey) {
