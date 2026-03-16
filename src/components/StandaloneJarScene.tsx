@@ -898,7 +898,7 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
         </div>
 
         {/* map view */}
-        <div id="map-view" className="absolute inset-0 z-30 opacity-0 pointer-events-none" style={{transition:'opacity 1s ease',visibility:'hidden'}}>
+        <div id="map-view" className="absolute inset-0 z-30 opacity-0 pointer-events-none" style={{transition:'opacity 0.4s ease',visibility:'hidden'}}>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(250,248,245,0.8)_100%)] pointer-events-none"></div>
             <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] pointer-events-none opacity-20" style={{transform:'translate(-50%,-50%)',animation:'rotateSlow 60s linear infinite'}}>
                 <svg viewBox="0 0 100 100" className="w-full h-full stroke-[#8b7355] fill-none" strokeWidth="0.1">
