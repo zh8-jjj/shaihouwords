@@ -8,7 +8,7 @@ import { MiniActivityGraph } from './components/MiniActivityGraph';
 import { ActivityGraph } from './components/ActivityGraph';
 import { StandaloneJarScene } from './components/StandaloneJarScene';
 import { startOfDay } from 'date-fns';
-import { LogOut, Plus, Play, BookOpen, List, UserCircle2, Settings, Mail } from 'lucide-react';
+import { LogOut, Plus, Play, Sparkles, List, UserCircle2, Settings, Mail, ArrowLeft, Flame, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from './components/ui/input';
 
 export default function App() {
@@ -110,19 +110,19 @@ export default function App() {
   };
 
   if (!isAuthReady) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse flex items-center gap-2"><BookOpen className="w-5 h-5 text-stone-400" strokeWidth={1.5} /> <span className="text-stone-500 font-serif italic">Loading...</span></div></div>;
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse flex items-center gap-2"><Sparkles className="w-5 h-5 text-stone-400" strokeWidth={1.5} /> <span className="text-stone-500 font-serif italic">Loading...</span></div></div>;
   }
 
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-stone-200 p-10 text-center space-y-8">
-          <div className="mx-auto w-16 h-16 border border-stone-200 rounded-full flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
+          <div className="mx-auto w-16 h-16 border border-stone-200 rounded-full flex items-center justify-center bg-stone-50">
+            <Sparkles className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
           </div>
           <div className="space-y-3">
-            <h1 className="text-4xl font-serif tracking-tight text-stone-900">晒后单词</h1>
-            <p className="text-stone-500 text-sm tracking-widest uppercase">Master vocabulary with spaced repetition</p>
+            <h1 className="text-4xl font-serif tracking-tight text-stone-900">Aftersun Words</h1>
+            <p className="text-stone-500 text-sm tracking-widest uppercase">BlackHouseNewSofa</p>
           </div>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -162,9 +162,9 @@ export default function App() {
             className="flex items-center space-x-2 mr-1 sm:mr-4 group"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
-              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
             </div>
-            <span className="hidden md:block font-serif italic text-lg tracking-tight">晒后单词</span>
+            <span className="hidden md:block font-serif italic text-lg tracking-tight">Aftersun Words</span>
           </button>
 
           {/* 调整瓶子外观 - Only relevant for dashboard */}

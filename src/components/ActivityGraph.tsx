@@ -239,24 +239,24 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
           <h2 className="text-3xl font-serif tracking-tight text-stone-900">Learning Trajectory</h2>
         </div>
 
-        <div className="flex items-center gap-4 self-end sm:self-auto">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handlePrev} className="w-8 h-8 rounded-full border-stone-200 text-stone-600 hover:bg-stone-50">
-              <ChevronLeft className="w-3 h-3" />
+        <div className="flex items-center gap-3 flex-wrap justify-end sm:justify-start">
+          <div className="flex items-center gap-2 bg-white/50 p-1 rounded-full border border-stone-200 shadow-sm">
+            <Button variant="ghost" size="icon" onClick={handlePrev} className="w-7 h-7 rounded-full text-stone-600 hover:bg-stone-50">
+              <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <div className="px-2 text-center min-w-[120px]">
-              <span className="text-sm font-serif text-stone-900">
+            <div className="px-1 text-center min-w-[100px]">
+              <span className="text-sm font-serif text-stone-900 whitespace-nowrap">
                 {viewMode === 'year' ? selectedYear : `${monthNames[selectedMonth]} ${selectedYear}`}
               </span>
             </div>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="icon" 
               onClick={handleNext} 
               disabled={viewMode === 'year' ? selectedYear === currentYear : (selectedYear === currentYear && selectedMonth === currentMonth)}
-              className="w-8 h-8 rounded-full border-stone-200 text-stone-600 hover:bg-stone-50 disabled:opacity-30"
+              className="w-7 h-7 rounded-full text-stone-600 hover:bg-stone-50 disabled:opacity-30"
             >
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
 

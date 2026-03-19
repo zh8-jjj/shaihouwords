@@ -108,7 +108,7 @@ export function AddWords({ onBack }: { onBack: () => void }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
         <div className="w-16 h-16 border border-stone-200 rounded-full flex items-center justify-center bg-white shadow-sm">
-          <CheckCircle2 className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
+          <Sparkles className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
         </div>
         <h2 className="text-3xl font-serif text-stone-900 tracking-tight">Added {successCount} words</h2>
         <p className="text-stone-500 text-sm uppercase tracking-widest leading-relaxed">

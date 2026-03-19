@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { dataService } from '../services/data';
 import { getNextReviewDate } from '../lib/ebbinghaus';
-import { X, Check, RefreshCw, ChevronLeft, Loader2 } from 'lucide-react';
+import { X, Check, RefreshCw, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import { generateAIContent } from '../services/ai';
 
@@ -154,7 +154,7 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
         <div className="w-16 h-16 border border-stone-200 rounded-full flex items-center justify-center bg-white shadow-sm">
-          <Check className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
+          <Sparkles className="w-6 h-6 text-stone-800" strokeWidth={1.5} />
         </div>
         <h2 className="text-3xl font-serif text-stone-900 tracking-tight">All done for today</h2>
         <p className="text-stone-500 text-sm uppercase tracking-widest">You've completed all your reviews</p>
