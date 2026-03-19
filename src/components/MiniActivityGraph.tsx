@@ -29,16 +29,16 @@ export function MiniActivityGraph({ onClick }: { onClick: () => void }) {
   });
 
   const getIntensityClass = (count: number) => {
-    if (count === 0) return 'bg-slate-200';
-    if (count < 5) return 'bg-emerald-300';
-    if (count < 15) return 'bg-emerald-400';
-    if (count < 30) return 'bg-emerald-500';
-    return 'bg-emerald-600';
+    if (count === 0) return 'bg-[#f3f3f3]';
+    if (count < 5) return 'bg-[#a1d99b]';
+    if (count < 15) return 'bg-[#74c476]';
+    if (count < 30) return 'bg-[#41ab5d]';
+    return 'bg-[#238b45]';
   };
 
   return (
     <div 
-      className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity p-1.5 rounded-lg hover:bg-stone-50 border border-transparent hover:border-stone-200"
+      className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity p-1.5 rounded-lg hover:bg-stone-50 border border-transparent hover:border-stone-200"
       onClick={onClick}
       title="View Activity Graph"
     >
@@ -47,7 +47,7 @@ export function MiniActivityGraph({ onClick }: { onClick: () => void }) {
         return (
           <div 
             key={day}
-            className={`w-3 h-3 rounded-sm ${getIntensityClass(count)}`}
+            className={`w-[10px] h-[10px] rounded-[2px] ${getIntensityClass(count)}`}
             title={`${day}: ${count} actions`}
           />
         );

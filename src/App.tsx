@@ -154,17 +154,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#faf8f5] text-stone-800 font-sans selection:bg-stone-200">
       {/* Top Navigation - Persistent across views */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 bg-[#faf8f5]/80 backdrop-blur-md border-b border-stone-200/50">
-        <div className="flex items-center space-x-2 sm:space-x-3">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4 bg-[#faf8f5]/80 backdrop-blur-md border-b border-stone-200/50">
+        <div className="flex items-center space-x-1 sm:space-x-3">
           {/* Logo / Home */}
           <button 
             onClick={() => setView('dashboard')}
-            className="flex items-center space-x-2 mr-2 sm:mr-4 group"
+            className="flex items-center space-x-2 mr-1 sm:mr-4 group"
           >
-            <div className="w-8 h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
-              <BookOpen className="w-4 h-4" strokeWidth={2} />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
             </div>
-            <span className="hidden sm:block font-serif italic text-lg tracking-tight">晒后单词</span>
+            <span className="hidden md:block font-serif italic text-lg tracking-tight">晒后单词</span>
           </button>
 
           {/* 调整瓶子外观 - Only relevant for dashboard */}
@@ -173,38 +173,38 @@ export default function App() {
               setView('dashboard');
               setShowJarSettings(!showJarSettings);
             }}
-            className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 ${showJarSettings && view === 'dashboard' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
+            className={`p-1.5 sm:p-2.5 rounded-full transition-all duration-300 ${showJarSettings && view === 'dashboard' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
             title="调整瓶子外观"
           >
             <Settings className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
           </button>
           {/* 预览单词列表 */}
           <button 
-            onClick={() => setView('list')}
-            className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 ${view === 'list' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
+            onClick={() => setView(view === 'list' ? 'dashboard' : 'list')}
+            className={`p-1.5 sm:p-2.5 rounded-full transition-all duration-300 ${view === 'list' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
             title="预览单词列表"
           >
             <List className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-1 sm:space-x-4">
           {/* 添加单词 */}
           <button 
-            onClick={() => setView('add')}
-            className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 ${view === 'add' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
+            onClick={() => setView(view === 'add' ? 'dashboard' : 'add')}
+            className={`p-1.5 sm:p-2.5 rounded-full transition-all duration-300 ${view === 'add' ? 'bg-stone-800 text-white' : 'bg-white/50 hover:bg-white text-stone-600 border border-stone-200 shadow-sm'}`}
             title="添加单词"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
           </button>
 
           {/* 图谱轨迹 */}
-          <div className="bg-white/50 backdrop-blur-sm px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-stone-200 shadow-sm">
-            <MiniActivityGraph onClick={() => setView('activity')} />
+          <div className="bg-white/50 backdrop-blur-sm px-1.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-stone-200 shadow-sm scale-90 sm:scale-100 origin-right">
+            <MiniActivityGraph onClick={() => setView(view === 'activity' ? 'dashboard' : 'activity')} />
           </div>
           
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out" className="text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full w-8 h-8 sm:w-9 sm:h-9">
-            <LogOut className="w-4 h-4" strokeWidth={1.5} />
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out" className="text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full w-7 h-7 sm:w-9 sm:h-9">
+            <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.5} />
           </Button>
         </div>
       </header>
@@ -256,12 +256,16 @@ export default function App() {
       )}
 
       {/* Review Modal for Dashboard Map View */}
-      {view === 'dashboard' && reviewSessionList.length > 0 && (
+      {view === 'dashboard' && isReviewingMap && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm">
           <div className="w-full max-w-lg px-4">
             <ReviewSession 
-              words={reviewSessionList} 
-              onComplete={handleReviewComplete} 
+              words={wordsToReview} 
+              onComplete={() => {
+                jarRef.current?.exitAnimation();
+                setIsReviewingMap(false);
+                fetchWords();
+              }} 
             />
           </div>
         </div>

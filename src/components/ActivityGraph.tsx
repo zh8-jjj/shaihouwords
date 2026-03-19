@@ -61,11 +61,11 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
   }, []);
 
   const getIntensityClass = (count: number) => {
-    if (count === 0) return 'bg-slate-100';
-    if (count < 5) return 'bg-emerald-200';
-    if (count < 15) return 'bg-emerald-400';
-    if (count < 30) return 'bg-emerald-500';
-    return 'bg-emerald-600';
+    if (count === 0) return 'bg-[#f3f3f3]';
+    if (count < 5) return 'bg-[#a1d99b]';
+    if (count < 15) return 'bg-[#74c476]';
+    if (count < 30) return 'bg-[#41ab5d]';
+    return 'bg-[#238b45]';
   };
 
   // Generate Year View Data
@@ -82,36 +82,61 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
       currentDate = addDays(currentDate, 1);
     }
 
+    const monthLabels = [
+      { name: 'Jan', weekIndex: 0 },
+      { name: 'Feb', weekIndex: 5 },
+      { name: 'Mar', weekIndex: 9 },
+      { name: 'Apr', weekIndex: 13 },
+      { name: 'May', weekIndex: 18 },
+      { name: 'Jun', weekIndex: 22 },
+      { name: 'Jul', weekIndex: 26 },
+      { name: 'Aug', weekIndex: 31 },
+      { name: 'Sep', weekIndex: 35 },
+      { name: 'Oct', weekIndex: 39 },
+      { name: 'Nov', weekIndex: 44 },
+      { name: 'Dec', weekIndex: 48 },
+    ];
+
+    const totalActionsInYear = Array.from(activeDays.entries())
+      .filter(([date]) => date.startsWith(selectedYear.toString()))
+      .reduce((sum, [, count]) => sum + count, 0);
+
     return (
-      <div className="min-w-[800px]">
-        <div className="flex gap-3">
-          <div className="flex flex-col text-xs text-stone-400 pr-2 font-medium" style={{ gap: '4px' }}>
-            <div className="h-3" />
-            <div className="h-3 leading-3">Mon</div>
-            <div className="h-3" />
-            <div className="h-3 leading-3">Wed</div>
-            <div className="h-3" />
-            <div className="h-3 leading-3">Fri</div>
-            <div className="h-3" />
+      <div className="min-w-[800px] py-4">
+        <div className="mb-4">
+          <p className="text-sm text-stone-500 font-medium tracking-wide uppercase">{selectedYear}: {totalActionsInYear} actions</p>
+        </div>
+
+        <div className="relative">
+          {/* Month Labels */}
+          <div className="flex mb-2 text-[10px] text-stone-400 font-medium">
+            {monthLabels.map((month, i) => (
+              <div 
+                key={i} 
+                className="absolute" 
+                style={{ left: `${month.weekIndex * 14 + 4}px` }}
+              >
+                {month.name}
+              </div>
+            ))}
           </div>
           
-          <div className="flex-1">
-            <div className="grid grid-rows-7 grid-flow-col gap-1">
+          <div className="pt-4">
+            <div className="grid grid-rows-7 grid-flow-col gap-[2px]">
               {days.map((day, i) => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const count = activeDays.get(dateStr) || 0;
                 
-                if (getYear(day) !== selectedYear) {
-                  return <div key={i} className="w-3 h-3 opacity-0" />;
-                }
-                if (isAfter(day, today)) {
-                  return <div key={i} className="w-3 h-3 bg-stone-50 rounded-sm" />;
-                }
+                const isCurrentYear = getYear(day) === selectedYear;
+                const isFuture = isAfter(day, today);
                 
                 return (
                   <div 
-                    key={dateStr}
-                    className={`w-3 h-3 rounded-sm ${getIntensityClass(count)} transition-colors hover:ring-1 hover:ring-stone-400`}
+                    key={i}
+                    className={`w-[12px] h-[12px] rounded-[3px] transition-colors hover:ring-1 hover:ring-stone-300
+                      ${!isCurrentYear ? 'opacity-0' : ''}
+                      ${isFuture ? 'bg-[#f3f3f3]' : getIntensityClass(count)}
+                    `}
                     title={`${dateStr}: ${count} actions`}
                   />
                 );
@@ -205,15 +230,78 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-stone-100 rounded-full">
-          <ArrowLeft className="w-5 h-5 text-stone-600" strokeWidth={1.5} />
-        </Button>
-        <h2 className="text-3xl font-serif tracking-tight text-stone-900">Learning Trajectory</h2>
+    <div className="space-y-8 max-w-5xl mx-auto pt-20 sm:pt-24 pb-20 px-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-stone-100 rounded-full">
+            <ArrowLeft className="w-5 h-5 text-stone-600" strokeWidth={1.5} />
+          </Button>
+          <h2 className="text-3xl font-serif tracking-tight text-stone-900">Learning Trajectory</h2>
+        </div>
+
+        <div className="flex items-center gap-4 self-end sm:self-auto">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handlePrev} className="w-8 h-8 rounded-full border-stone-200 text-stone-600 hover:bg-stone-50">
+              <ChevronLeft className="w-3 h-3" />
+            </Button>
+            <div className="px-2 text-center min-w-[120px]">
+              <span className="text-sm font-serif text-stone-900">
+                {viewMode === 'year' ? selectedYear : `${monthNames[selectedMonth]} ${selectedYear}`}
+              </span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleNext} 
+              disabled={viewMode === 'year' ? selectedYear === currentYear : (selectedYear === currentYear && selectedMonth === currentMonth)}
+              className="w-8 h-8 rounded-full border-stone-200 text-stone-600 hover:bg-stone-50 disabled:opacity-30"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200">
+            <button 
+              onClick={() => setViewMode('year')}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${viewMode === 'year' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+            >
+              Yearly
+            </button>
+            <button 
+              onClick={() => setViewMode('month')}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${viewMode === 'month' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+            >
+              Monthly
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="overflow-hidden">
+        {loading ? (
+          <div className="h-64 flex items-center justify-center text-stone-400 font-serif italic">Loading trajectory...</div>
+        ) : (
+          <div className="overflow-x-auto no-scrollbar pb-4">
+            {viewMode === 'year' ? renderYearView() : renderMonthView()}
+            
+            {viewMode === 'month' && (
+              <div className="flex items-center justify-end gap-3 mt-6 text-[10px] text-stone-400 font-medium uppercase tracking-widest">
+                <span>Less</span>
+                <div className="flex gap-1">
+                  <div className="w-3 h-3 rounded-sm bg-slate-100" />
+                  <div className="w-3 h-3 rounded-sm bg-emerald-200" />
+                  <div className="w-3 h-3 rounded-sm bg-emerald-400" />
+                  <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+                  <div className="w-3 h-3 rounded-sm bg-emerald-600" />
+                </div>
+                <span>More</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
         <div className="bg-white p-8 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-stone-50 rounded-bl-full -z-10" />
           <div className="w-12 h-12 border border-stone-200 text-stone-800 rounded-full flex items-center justify-center bg-white">
@@ -235,65 +323,6 @@ export function ActivityGraph({ onBack }: { onBack: () => void }) {
             <p className="text-3xl font-serif text-stone-900">{totalActive} <span className="text-lg font-sans text-stone-500">Days</span></p>
           </div>
         </div>
-      </div>
-
-      <div className="bg-white p-10 rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
-          <div className="flex items-center gap-2 bg-stone-50 p-1 rounded-xl border border-stone-200 w-fit">
-            <button 
-              onClick={() => setViewMode('year')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'year' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Yearly
-            </button>
-            <button 
-              onClick={() => setViewMode('month')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'month' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Monthly
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={handlePrev} className="rounded-full border-stone-200 text-stone-600 hover:bg-stone-50">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div className="w-40 text-center">
-              <span className="text-xl font-serif text-stone-900">
-                {viewMode === 'year' ? selectedYear : `${monthNames[selectedMonth]} ${selectedYear}`}
-              </span>
-            </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleNext} 
-              disabled={viewMode === 'year' ? selectedYear >= currentYear : (selectedYear === currentYear && selectedMonth === currentMonth)}
-              className="rounded-full border-stone-200 text-stone-600 hover:bg-stone-50 disabled:opacity-30"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-        
-        {loading ? (
-          <div className="h-64 flex items-center justify-center text-stone-400 font-serif italic">Loading trajectory...</div>
-        ) : (
-          <div className="overflow-x-auto pb-4">
-            {viewMode === 'year' ? renderYearView() : renderMonthView()}
-            
-            <div className="flex items-center justify-end gap-3 mt-10 text-xs text-stone-400 font-medium uppercase tracking-widest">
-              <span>Less</span>
-              <div className="flex gap-1.5">
-                <div className="w-4 h-4 rounded-sm bg-slate-100" />
-                <div className="w-4 h-4 rounded-sm bg-emerald-200" />
-                <div className="w-4 h-4 rounded-sm bg-emerald-400" />
-                <div className="w-4 h-4 rounded-sm bg-emerald-500" />
-                <div className="w-4 h-4 rounded-sm bg-emerald-600" />
-              </div>
-              <span>More</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const startAnimRef = useRef<() => void>(() => {});
+  const exitAnimRef = useRef<() => void>(() => {});
   const onWordClickRef = useRef(onWordClick);
   const onExitReviewRef = useRef(onExitReview);
 
@@ -30,6 +31,7 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
 
   useImperativeHandle(ref, () => ({
     startAnimation: () => startAnimRef.current(),
+    exitAnimation: () => exitAnimRef.current(),
   }));
 
   useEffect(() => {
@@ -499,12 +501,12 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
         if (sliders) sliders.style.opacity='0';
     });
 
-    container.querySelector('#back-btn')?.addEventListener('click',()=>{
+    exitAnimRef.current = () => {
         if(animState!=='DONE') return;
         if (onExitReviewRef.current) onExitReviewRef.current();
         if (whiteout) whiteout.style.transition='opacity 0.4s ease';
         animState='R0'; animStart=performance.now();
-    });
+    };
 
     // ---- Color picker ----
     function applyLiqColor(hex: string) {
@@ -585,11 +587,6 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
             if(tt>=1){
                 animState='DONE';
                 if (onAnimationComplete) onAnimationComplete();
-                if (mapView) {
-                    mapView.classList.remove('pointer-events-none'); 
-                    mapView.style.visibility='visible'; 
-                    mapView.style.opacity='1';
-                }
                 if (canvas) canvas.style.display='none'; 
                 if (wetLens) wetLens.style.display='none'; 
                 if (wetBlur) wetBlur.style.display='none';
@@ -610,11 +607,6 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
                 camera.position.copy(p2CamTarget);
                 camera.lookAt(p2LookTarget);
                 camera.fov=60; camera.updateProjectionMatrix();
-                if (mapView) {
-                    mapView.style.opacity='0'; 
-                    mapView.style.visibility='hidden'; 
-                    mapView.classList.add('pointer-events-none');
-                }
                 r1CamStart.copy(p2CamTarget);
                 animState='R1'; animStart=performance.now();
                 setTimeout(()=>{if (whiteout) { whiteout.style.transition='opacity 0.4s ease'; whiteout.style.opacity='0'; }},60);
@@ -662,103 +654,6 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
         renderer.dispose();
     };
   }, []);
-
-  // Update map nodes when reviewWords changes
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    const nc = containerRef.current.querySelector('#nodes-container');
-    const sv = containerRef.current.querySelector('#network-lines');
-    if (!nc || !sv) return;
-
-    nc.innerHTML = '';
-    sv.innerHTML = '';
-
-    if (reviewWords.length === 0) return;
-
-    // Generate positions for nodes using Golden Angle (Phyllotaxis) for organic distribution
-    const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-    const nodes = reviewWords.map((word, i) => {
-        const angle = i * GOLDEN_ANGLE;
-        // Adjust spread based on word count
-        const spread = Math.min(35, 15 + Math.sqrt(reviewWords.length) * 4);
-        let radius = Math.sqrt(i + 1) * (spread / Math.sqrt(reviewWords.length || 1));
-        
-        let x = 50 + Math.cos(angle) * radius;
-        let y = 45 + Math.sin(angle) * radius; // Shifted center up from 50 to 45
-
-        // Safety check to avoid blocking bottom-center button (Show Jar) and top header
-        // Ensure y doesn't go too low (e.g., below 82%) or too high (e.g., above 12%)
-        if (y > 82) {
-            y = 82;
-        }
-        if (y < 12) {
-            y = 12;
-        }
-        
-        return {
-            ...word,
-            x,
-            y,
-            size: 45 + Math.random() * 15 // Smaller, more consistent size
-        };
-    });
-
-    nodes.forEach(nd => {
-        const el = document.createElement('div');
-        el.className = `map-node absolute cursor-pointer group ${nd.isReviewed ? 'is-reviewed' : ''}`;
-        el.style.cssText = `left:${nd.x}%;top:${nd.y}%;transform:translate(-50%,-50%);`;
-        el.innerHTML = `
-            ${nd.isReviewed ? '' : `<div class="node-glow" style="width:${nd.size * 2.5}px;height:${nd.size * 2.5}px;"></div>`}
-            <div class="node-core relative flex items-center justify-center rounded-full border ${nd.isReviewed ? 'border-stone-200 bg-white/60' : 'border-amber-600/30 bg-white/80'} backdrop-blur-md transition-all duration-500 z-10 shadow-sm" style="width:${nd.size}px;height:${nd.size}px;">
-                <span class="text-[#4a3f35] font-serif italic text-[10px] md:text-xs tracking-wider pointer-events-none text-center px-2 leading-tight">${nd.word}</span>
-            </div>
-        `;
-        el.addEventListener('click', e => {
-            e.stopPropagation();
-            if (onWordClickRef.current) onWordClickRef.current(nd);
-        });
-        nc.appendChild(el);
-    });
-
-    const rect = nc.getBoundingClientRect();
-    const drawLines = () => {
-        sv.innerHTML = '';
-        const currentRect = nc.getBoundingClientRect();
-        const connections = new Set();
-
-        for (let i = 0; i < nodes.length; i++) {
-            // Find 2 nearest neighbors for each node to create a clean, non-cluttered web
-            const neighbors = nodes
-                .map((n, idx) => ({ idx, dist: Math.sqrt(Math.pow(nodes[i].x - n.x, 2) + Math.pow(nodes[i].y - n.y, 2)) }))
-                .filter(n => n.idx !== i)
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 2);
-
-            neighbors.forEach(nb => {
-                const pair = [i, nb.idx].sort().join('-');
-                if (!connections.has(pair) && nb.dist < 30) {
-                    connections.add(pair);
-                    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    ln.setAttribute('x1', String((nodes[i].x / 100) * currentRect.width));
-                    ln.setAttribute('y1', String((nodes[i].y / 100) * currentRect.height));
-                    ln.setAttribute('x2', String((nodes[nb.idx].x / 100) * currentRect.width));
-                    ln.setAttribute('y2', String((nodes[nb.idx].y / 100) * currentRect.height));
-                    
-                    // Beautify: solid yellow lines as requested
-                    ln.setAttribute('stroke', '#d97706');
-                    ln.setAttribute('stroke-width', '1');
-                    ln.setAttribute('stroke-opacity', '0.25');
-                    sv.appendChild(ln);
-                }
-            });
-        }
-    };
-
-    drawLines();
-    window.addEventListener('resize', drawLines);
-    return () => window.removeEventListener('resize', drawLines);
-  }, [reviewWords, onWordClick]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-2xl shadow-2xl bg-[#faf8f5]" style={{
@@ -897,61 +792,6 @@ export const StandaloneJarScene = forwardRef<any, StandaloneJarSceneProps>(({
             </button>
         </div>
 
-        {/* map view */}
-        <div id="map-view" className="absolute inset-0 z-30 opacity-0 pointer-events-none" style={{transition:'opacity 0.4s ease',visibility:'hidden'}}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(250,248,245,0.8)_100%)] pointer-events-none"></div>
-            <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] pointer-events-none opacity-20" style={{transform:'translate(-50%,-50%)',animation:'rotateSlow 60s linear infinite'}}>
-                <svg viewBox="0 0 100 100" className="w-full h-full stroke-[#8b7355] fill-none" strokeWidth="0.1">
-                    <circle cx="50" cy="50" r="20" strokeDasharray="1 2"></circle>
-                    <circle cx="50" cy="50" r="35" strokeDasharray="0.5 4"></circle>
-                    <circle cx="50" cy="50" r="48" strokeDasharray="2 6"></circle>
-                    <line x1="50" y1="0" x2="50" y2="100" strokeDasharray="0.5 2"></line>
-                    <line x1="0" y1="50" x2="100" y2="50" strokeDasharray="0.5 2"></line>
-                </svg>
-            </div>
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" id="network-lines"></svg>
-            <div id="nodes-container" className="absolute inset-0 z-10"></div>
-
-            {/* back to jar button */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
-                <button id="back-btn" className="pointer-events-auto group flex flex-col items-center space-y-3 cursor-pointer">
-                    <span className="text-[#8b7355] text-xs tracking-[0.3em] font-light group-hover:text-[#d97706] transition-colors duration-300 uppercase">Show Jar</span>
-                    <div className="w-10 h-10 rounded-full border border-[#8b7355]/30 flex items-center justify-center group-hover:border-[#d97706] transition-colors duration-300">
-                        <svg className="w-4 h-4 text-[#8b7355] group-hover:text-[#d97706] transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 15l7-7 7 7"></path></svg>
-                    </div>
-                </button>
-            </div>
-        </div>
-
-        {/* detail panel */}
-        <div id="detail-panel" className="absolute top-0 right-0 w-[400px] h-full bg-[#faf8f5]/95 backdrop-blur-md border-l border-[#8b7355]/20 z-50 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.05)]" style={{transform:'translateX(100%)',transition:'transform 0.7s cubic-bezier(0.19,1,0.22,1)'}}>
-            <div className="p-8 pb-4 flex justify-between items-center border-b border-[#8b7355]/10">
-                <h2 id="panel-title" className="text-2xl font-medium text-[#4a3f35] tracking-widest">記憶</h2>
-                <button id="close-panel" className="w-8 h-8 rounded-full hover:bg-[#8b7355]/10 flex items-center justify-center transition-colors text-[#8b7355]">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                <div className="space-y-3 cursor-pointer group">
-                    <div className="flex items-center space-x-3"><div className="w-1.5 h-1.5 rounded-full bg-[#d97706]"></div><span className="text-xs text-[#8b7355] tracking-widest">2023.10.14</span></div>
-                    <p className="text-sm text-[#4a3f35] leading-loose text-justify group-hover:text-[#d97706] transition-colors">古い蔵の中で見つけた手帳には、祖父の字で「静寂が味を育てる」と記されていた。温度管理だけではない、空間の記憶が菌に影響を与えるという仮説。</p>
-                </div>
-                <div className="w-full h-px bg-[#8b7355]/10"></div>
-                <div className="space-y-3 cursor-pointer group">
-                    <div className="flex items-center space-x-3"><div className="w-1.5 h-1.5 rounded-full bg-[#d97706] opacity-50"></div><span className="text-xs text-[#8b7355] tracking-widest">2023.09.28</span></div>
-                    <p className="text-sm text-[#4a3f35] leading-loose text-justify group-hover:text-[#d97706] transition-colors">秋の気配が濃くなるにつれ、発酵の進みが穏やかになった。まるで季節の移ろいを感知しているかのようだ。データには現れない微細な揺らぎ。</p>
-                </div>
-                <div className="w-full h-px bg-[#8b7355]/10"></div>
-                <div className="space-y-3 cursor-pointer group">
-                    <div className="flex items-center space-x-3"><div className="w-1.5 h-1.5 rounded-full bg-[#d97706] opacity-50"></div><span className="text-xs text-[#8b7355] tracking-widest">2023.08.12</span></div>
-                    <p className="text-sm text-[#4a3f35] leading-loose text-justify group-hover:text-[#d97706] transition-colors">澱の沈殿パターンに規則性を見出した。フラクタル状に広がるその形は、過去の発酵過程の全記憶を内包しているように見える。</p>
-                </div>
-            </div>
-            <div className="p-6 border-t border-[#8b7355]/10 bg-[#f0ece1]/50">
-                <button className="w-full py-3 border border-[#d97706] text-[#d97706] text-sm tracking-widest hover:bg-[#d97706] hover:text-white transition-colors duration-300 uppercase">Write New Entry</button>
-            </div>
-        </div>
-        
         <div className="absolute top-0 left-0 w-full h-12 flex items-center px-4 z-50 pointer-events-none">
             {/* Dots and label removed for cleaner mobile look */}
         </div>

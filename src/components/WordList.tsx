@@ -108,7 +108,7 @@ export function WordList({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-20">
+    <div className="space-y-6 max-w-5xl mx-auto pb-20 pt-20 sm:pt-24">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-stone-100 rounded-full">

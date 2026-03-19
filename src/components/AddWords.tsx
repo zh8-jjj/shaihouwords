@@ -121,7 +121,7 @@ export function AddWords({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
+    <div className="space-y-8 max-w-2xl mx-auto pt-20 sm:pt-24 pb-20">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-stone-100 rounded-full">
           <ArrowLeft className="w-5 h-5 text-stone-600" strokeWidth={1.5} />

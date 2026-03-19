@@ -35,10 +35,10 @@ service cloud.firestore {
       return true;
     }
     function uidUnchanged() {
-      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid || true;
+      return true;
     }
     function uidNotModified() {
-      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId || true;
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
     }
     function hasRequiredFields(fields) {
       return request.resource.data.keys().hasAll(fields);
@@ -54,7 +54,7 @@ service cloud.firestore {
              data.nextReviewDate is timestamp &&
              data.reviewCount is number && data.reviewCount >= 0 &&
              data.status in ['learning', 'graduated'] &&
-             (!('lastReviewedAt' in data) || data.lastReviewedAt is timestamp) &&
+             (!('lastReviewedAt' in data) || data.lastReviewedAt == null || data.lastReviewedAt is timestamp) &&
              (!('failures' in data) || data.failures is list);
     }
 
