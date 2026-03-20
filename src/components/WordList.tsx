@@ -123,44 +123,24 @@ export function WordList({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-20 pt-20 sm:pt-24">
+    <div className="space-y-6 max-w-5xl mx-auto pb-20 px-1 pt-[1592px] sm:pt-[1600px]">
+      {/* Header Row - div:nth-of-type(1) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-stone-100 rounded-full">
             <ArrowLeft className="w-5 h-5 text-stone-600" strokeWidth={1.5} />
           </Button>
-          <h2 className="text-3xl font-serif tracking-tight text-stone-900">My Vocabulary</h2>
+          <h2 className="text-2xl sm:text-3xl font-serif tracking-tight text-stone-900">My Vocabulary</h2>
         </div>
-
+        
         <div className="flex items-center gap-3">
-          {selectedIds.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleBulkDelete}
-              disabled={isBulkDeleting}
-              className="rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all animate-in fade-in slide-in-from-right-2"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete {selectedIds.length}
-            </Button>
-          )}
-          {isSelectionMode && selectedIds.length === 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setIsSelectionMode(false)}
-              className="rounded-full text-stone-500 hover:bg-stone-100 transition-all"
-            >
-              Cancel
-            </Button>
-          )}
-          <div className="relative group">
+          {/* Date Filter - Now in the header for maximum visibility */}
+          <div className="relative w-full sm:w-44 group">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-stone-600 transition-colors" strokeWidth={1.5} />
             <select 
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="pl-10 pr-10 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full sm:w-44 transition-all appearance-none cursor-pointer"
+              className="pl-10 pr-10 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full transition-all appearance-none cursor-pointer shadow-sm hover:border-stone-300"
             >
               <option value="">All Dates</option>
               {availableDates.map(date => (
@@ -171,39 +151,56 @@ export function WordList({ onBack }: { onBack: () => void }) {
               <ChevronDown className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
             </div>
           </div>
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-stone-600 transition-colors" strokeWidth={1.5} />
-            <input 
-              type="text" 
-              placeholder="Search words..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full sm:w-48 transition-all"
-            />
-          </div>
+
+          {selectedIds.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all animate-in fade-in slide-in-from-right-2"
+            >
+              <Trash2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Delete {selectedIds.length}</span>
+              <span className="sm:hidden">{selectedIds.length}</span>
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 p-1 bg-stone-100 rounded-xl w-fit">
-        <button 
-          onClick={() => { setActiveTab('learning'); setSelectedIds([]); setIsSelectionMode(false); }}
-          className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${activeTab === 'learning' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-        >
-          Learning ({words.filter(w => w.status === 'learning').length})
-        </button>
-        <button 
-          onClick={() => { setActiveTab('graduated'); setSelectedIds([]); setIsSelectionMode(false); }}
-          className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${activeTab === 'graduated' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-        >
-          Mastered ({words.filter(w => w.status === 'graduated').length})
-        </button>
-        <button 
-          onClick={() => { setActiveTab('all'); setSelectedIds([]); setIsSelectionMode(false); }}
-          className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${activeTab === 'all' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-        >
-          All ({words.length})
-        </button>
+      {/* Filter Bar - div:nth-of-type(2) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 p-3 sm:p-4 rounded-2xl border border-stone-200/60 backdrop-blur-sm shadow-sm">
+        <div className="flex items-center gap-2 p-1 bg-stone-100/80 rounded-xl w-full md:w-fit overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => { setActiveTab('learning'); setSelectedIds([]); setIsSelectionMode(false); }}
+            className={`flex-1 md:flex-none px-4 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${activeTab === 'learning' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+          >
+            Learning ({words.filter(w => w.status === 'learning').length})
+          </button>
+          <button 
+            onClick={() => { setActiveTab('graduated'); setSelectedIds([]); setIsSelectionMode(false); }}
+            className={`flex-1 md:flex-none px-4 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${activeTab === 'graduated' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+          >
+            Mastered ({words.filter(w => w.status === 'graduated').length})
+          </button>
+          <button 
+            onClick={() => { setActiveTab('all'); setSelectedIds([]); setIsSelectionMode(false); }}
+            className={`flex-1 md:flex-none px-4 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${activeTab === 'all' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+          >
+            All ({words.length})
+          </button>
+        </div>
+
+        <div className="relative w-full md:w-64 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-stone-600 transition-colors" strokeWidth={1.5} />
+          <input 
+            type="text" 
+            placeholder="Search words..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full transition-all shadow-sm hover:border-stone-300"
+          />
+        </div>
       </div>
       
       <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden relative min-h-[400px]">
