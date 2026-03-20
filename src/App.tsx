@@ -65,11 +65,21 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !isAuthReady) return;
-    fetchWords();
+    
+    // Only fetch words if we are not in a review session
+    if (!isReviewingMap && view !== 'review') {
+      fetchWords();
+    }
+    
     // Poll every 30 seconds for "real-time" feel without VPN
-    const interval = setInterval(fetchWords, 30000);
+    // Disable polling while reviewing to prevent the word list from changing mid-session
+    const interval = setInterval(() => {
+      if (!isReviewingMap && view !== 'review') {
+        fetchWords();
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, [user, isAuthReady]);
+  }, [user, isAuthReady, isReviewingMap, view]);
 
   const handleLogin = async () => {
     if (!emailInput.trim()) return;
@@ -122,7 +132,7 @@ export default function App() {
           </div>
           <div className="space-y-3">
             <h1 className="text-4xl font-serif tracking-tight text-stone-900">Aftersun Words</h1>
-            <p className="text-stone-500 text-sm tracking-widest uppercase">BlackHouseNewSofa</p>
+            <p className="text-stone-500 text-sm tracking-widest">@BlackHouseNewHouse</p>
           </div>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -141,10 +151,6 @@ export default function App() {
             <Button size="lg" className="w-full h-12 text-sm font-medium rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors" onClick={handleLogin}>
               Enter
             </Button>
-            
-            <p className="text-xs text-stone-400 mt-6 leading-relaxed italic">
-              * 测试版：无需翻墙即可访问数据。
-            </p>
           </div>
         </div>
       </div>
@@ -260,10 +266,11 @@ export default function App() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm">
           <div className="w-full max-w-lg px-4">
             <ReviewSession 
-              words={wordsToReview} 
+              words={reviewSessionList.length > 0 ? reviewSessionList : wordsToReview} 
               onComplete={() => {
                 jarRef.current?.exitAnimation();
                 setIsReviewingMap(false);
+                setReviewSessionList([]);
                 fetchWords();
               }} 
             />
@@ -287,7 +294,10 @@ export default function App() {
         {view === 'review' && (
           <ReviewSession 
             words={wordsToReview} 
-            onComplete={() => setView('dashboard')} 
+            onComplete={() => {
+              setView('dashboard');
+              fetchWords();
+            }} 
           />
         )}
       </main>

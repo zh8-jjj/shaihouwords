@@ -3,8 +3,138 @@ import { Button } from './ui/button';
 import { dataService } from '../services/data';
 import { getNextReviewDate } from '../lib/ebbinghaus';
 import { X, Check, RefreshCw, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react';
 import { generateAIContent } from '../services/ai';
+
+interface ReviewCardProps {
+  key?: any;
+  word: any;
+  showMeaning: boolean;
+  loading: boolean;
+  onFlip: () => void;
+  onReview: (remembered: boolean) => Promise<void>;
+  direction: number;
+  aiLoading: boolean;
+  details: { example?: string; mnemonic?: string };
+}
+
+function ReviewCard({ word, showMeaning, loading, onFlip, onReview, direction, aiLoading, details }: ReviewCardProps) {
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-10, 10]);
+  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+
+  const handleDragEnd = (_: any, info: any) => {
+    const threshold = 100;
+    if (info.offset.x > threshold) {
+      onReview(true);
+    } else if (info.offset.x < -threshold) {
+      onReview(false);
+    }
+  };
+
+  const variants = {
+    enter: {
+      scale: 0.95,
+      y: 10,
+      opacity: 0,
+    },
+    center: {
+      scale: 1,
+      y: 0,
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    },
+    exit: (dir: number) => ({
+      x: dir === 0 ? 0 : dir * 500,
+      opacity: 0,
+      scale: 0.9,
+      transition: {
+        duration: 0.3,
+        ease: "easeIn"
+      }
+    })
+  };
+
+  return (
+    <motion.div
+      key={word.id}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      style={{ x, rotate, opacity }}
+      drag={showMeaning && !loading ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.7}
+      onDragEnd={handleDragEnd}
+      className={`absolute inset-0 w-full h-full bg-white rounded-2xl shadow-md border border-stone-200 flex flex-col p-6 md:p-8 text-center overflow-hidden group ${showMeaning && !loading ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+      onClick={() => !showMeaning && !loading && onFlip()}
+    >
+      {showMeaning ? (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+          className="w-full h-full flex flex-col items-center overflow-y-auto no-scrollbar py-2"
+        >
+          <h2 className="text-3xl font-serif text-stone-900 mb-4">{word.word}</h2>
+          <div className="h-px w-12 bg-stone-200 mx-auto mb-6 flex-none" />
+          
+          <div className="flex flex-col space-y-3 w-full text-left flex-1">
+            <div className="space-y-1">
+              <span className="text-[10px] text-stone-400 uppercase tracking-widest">Meaning</span>
+              <div className="flex flex-col space-y-1">
+                {word.meaning.split(/[;；]/).map((m: string, i: number) => (
+                  <p key={i} className="text-lg text-stone-700 font-serif italic">{m.trim()}</p>
+                ))}
+              </div>
+            </div>
+
+            {aiLoading ? (
+              <div className="flex items-center justify-center py-8 text-stone-300">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {details.example && (
+                  <div className="space-y-1 pt-2 border-t border-stone-50">
+                    <span className="text-[10px] text-stone-400 uppercase tracking-widest">Example</span>
+                    <p className="text-sm text-stone-600 leading-relaxed">{details.example}</p>
+                  </div>
+                )}
+                
+                {details.mnemonic && (
+                  <div className="space-y-1 pt-2 border-t border-stone-50 mt-3">
+                    <span className="text-[10px] text-stone-400 uppercase tracking-widest">Analysis & Mnemonic</span>
+                    <p className="text-xs text-stone-500 leading-relaxed bg-stone-50 p-3 rounded-lg border border-stone-100 italic">
+                      {details.mnemonic}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+      ) : (
+        <div className="space-y-6 flex flex-col items-center justify-center h-full w-full flex-1 pointer-events-none">
+          <h2 className="text-4xl md:text-5xl font-serif text-stone-900">{word.word}</h2>
+          <p className="text-stone-400 text-xs uppercase tracking-widest mt-8 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <RefreshCw className="w-3 h-3" strokeWidth={1.5} /> Tap to flip
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 export function ReviewSession({ words, onComplete }: { words: any[], onComplete: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -17,19 +147,14 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
   const currentWord = words[currentIndex];
   const nextWord = currentIndex + 1 < words.length ? words[currentIndex + 1] : null;
 
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-10, 10]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
-
   useEffect(() => {
     if (currentWord) {
       setCurrentDetails({
         example: currentWord.example,
         mnemonic: currentWord.mnemonic
       });
-      x.set(0);
     }
-  }, [currentWord, x]);
+  }, [currentWord]);
 
   const fetchAiDetails = async () => {
     if (!currentWord || aiLoading) return;
@@ -72,11 +197,12 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     }
   }, [showMeaning]);
 
-  const handleReview = (remembered: boolean) => {
+  const handleReview = async (remembered: boolean) => {
     if (!currentWord || loading) return;
     
     setLoading(true);
-    setDirection(remembered ? 1 : -1);
+    const dir = remembered ? 1 : -1;
+    setDirection(dir);
     
     // Calculate new review count and next review date
     const newReviewCount = remembered ? currentWord.reviewCount + 1 : 0;
@@ -100,54 +226,18 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
     dataService.updateWord(currentWord.id, updateData).catch(e => console.error(e));
     dataService.recordActivity().catch(e => console.error(e));
 
-    // Move to next word after a short delay for animation
+    // Small delay to allow state to settle
     setTimeout(() => {
       if (currentIndex + 1 < words.length) {
         setCurrentIndex(currentIndex + 1);
         setShowMeaning(false);
         setCurrentDetails({});
         setLoading(false);
-        setDirection(0);
+        // Don't reset direction here, it will be reset on next handleReview
       } else {
         onComplete();
       }
-    }, 200);
-  };
-
-  const handleDragEnd = (event: any, info: any) => {
-    const threshold = 100;
-    if (info.offset.x > threshold) {
-      handleReview(true);
-    } else if (info.offset.x < -threshold) {
-      handleReview(false);
-    }
-  };
-
-  const variants = {
-    enter: {
-      scale: 0.95,
-      y: 10,
-      opacity: 0,
-    },
-    center: {
-      scale: 1,
-      y: 0,
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    },
-    exit: (direction: number) => ({
-      x: direction * 500,
-      opacity: 0,
-      scale: 0.9,
-      transition: {
-        duration: 0.3,
-        ease: "easeIn"
-      }
-    })
+    }, 50);
   };
 
   if (!currentWord) {
@@ -205,79 +295,17 @@ export function ReviewSession({ words, onComplete }: { words: any[], onComplete:
 
         {/* Current Card (Foreground) */}
         <AnimatePresence mode="popLayout" custom={direction}>
-          <motion.div
+          <ReviewCard 
             key={currentWord.id}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            style={{ x, rotate, opacity }}
-            drag={showMeaning && !loading ? "x" : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.7}
-            onDragEnd={handleDragEnd}
-            className={`absolute inset-0 w-full h-full bg-white rounded-2xl shadow-md border border-stone-200 flex flex-col p-6 md:p-8 text-center overflow-hidden group ${showMeaning && !loading ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
-            onClick={() => !showMeaning && !loading && setShowMeaning(true)}
-          >
-            {showMeaning ? (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15 }}
-                className="w-full h-full flex flex-col items-center overflow-y-auto no-scrollbar py-2"
-              >
-                <h2 className="text-3xl font-serif text-stone-900 mb-4">{currentWord.word}</h2>
-                <div className="h-px w-12 bg-stone-200 mx-auto mb-6 flex-none" />
-                
-                <div className="flex flex-col space-y-3 w-full text-left flex-1">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-stone-400 uppercase tracking-widest">Meaning</span>
-                    <div className="flex flex-col space-y-1">
-                      {currentWord.meaning.split(/[;；]/).map((m: string, i: number) => (
-                        <p key={i} className="text-lg text-stone-700 font-serif italic">{m.trim()}</p>
-                      ))}
-                    </div>
-                  </div>
-
-                  {aiLoading ? (
-                    <div className="flex items-center justify-center py-8 text-stone-300">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    </div>
-                  ) : (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {currentDetails.example && (
-                        <div className="space-y-1 pt-2 border-t border-stone-50">
-                          <span className="text-[10px] text-stone-400 uppercase tracking-widest">Example</span>
-                          <p className="text-sm text-stone-600 leading-relaxed">{currentDetails.example}</p>
-                        </div>
-                      )}
-                      
-                      {currentDetails.mnemonic && (
-                        <div className="space-y-1 pt-2 border-t border-stone-50 mt-3">
-                          <span className="text-[10px] text-stone-400 uppercase tracking-widest">Analysis & Mnemonic</span>
-                          <p className="text-xs text-stone-500 leading-relaxed bg-stone-50 p-3 rounded-lg border border-stone-100 italic">
-                            {currentDetails.mnemonic}
-                          </p>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <div className="space-y-6 flex flex-col items-center justify-center h-full w-full flex-1 pointer-events-none">
-                <h2 className="text-4xl md:text-5xl font-serif text-stone-900">{currentWord.word}</h2>
-                <p className="text-stone-400 text-xs uppercase tracking-widest mt-8 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <RefreshCw className="w-3 h-3" strokeWidth={1.5} /> Tap to flip
-                </p>
-              </div>
-            )}
-          </motion.div>
+            word={currentWord}
+            showMeaning={showMeaning}
+            loading={loading}
+            onFlip={() => setShowMeaning(true)}
+            onReview={handleReview}
+            direction={direction}
+            aiLoading={aiLoading}
+            details={currentDetails}
+          />
         </AnimatePresence>
       </div>
 

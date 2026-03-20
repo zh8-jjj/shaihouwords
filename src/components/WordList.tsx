@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { dataService } from '../services/data';
 import { Button } from './ui/button';
-import { ArrowLeft, Trash2, Check, X, Search, Filter, BookOpen, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, X, Search, Filter, BookOpen, RefreshCw, Calendar, ChevronDown } from 'lucide-react';
 
 const INTERVALS = [1, 2, 4, 7, 15, 30];
 
@@ -9,12 +9,22 @@ export function WordList({ onBack }: { onBack: () => void }) {
   const [words, setWords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'learning' | 'graduated' | 'all'>('learning');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  
+  const availableDates = useMemo(() => {
+    const dates = new Set<string>();
+    words.forEach(word => {
+      const date = new Date(typeof word.createdAt === 'string' ? word.createdAt : (word.createdAt?.seconds * 1000 || Date.now()));
+      dates.add(date.toISOString().split('T')[0]);
+    });
+    return Array.from(dates).sort((a, b) => b.localeCompare(a));
+  }, [words]);
 
   const fetchWords = async () => {
     try {
@@ -36,9 +46,14 @@ export function WordList({ onBack }: { onBack: () => void }) {
       const matchesSearch = word.word.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            (word.meaning && word.meaning.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesTab = activeTab === 'all' || word.status === activeTab;
-      return matchesSearch && matchesTab;
+      
+      const wordDate = new Date(typeof word.createdAt === 'string' ? word.createdAt : (word.createdAt?.seconds * 1000 || Date.now()));
+      const formattedWordDate = wordDate.toISOString().split('T')[0];
+      const matchesDate = !selectedDate || formattedWordDate === selectedDate;
+
+      return matchesSearch && matchesTab && matchesDate;
     });
-  }, [words, searchQuery, activeTab]);
+  }, [words, searchQuery, activeTab, selectedDate]);
 
   const handleRestart = async (word: any) => {
     try {
@@ -141,13 +156,29 @@ export function WordList({ onBack }: { onBack: () => void }) {
             </Button>
           )}
           <div className="relative group">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-stone-600 transition-colors" strokeWidth={1.5} />
+            <select 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="pl-10 pr-10 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full sm:w-44 transition-all appearance-none cursor-pointer"
+            >
+              <option value="">All Dates</option>
+              {availableDates.map(date => (
+                <option key={date} value={date}>{date}</option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <ChevronDown className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-stone-600 transition-colors" strokeWidth={1.5} />
             <input 
               type="text" 
               placeholder="Search words..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full sm:w-64 transition-all"
+              className="pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-stone-200 w-full sm:w-48 transition-all"
             />
           </div>
         </div>
